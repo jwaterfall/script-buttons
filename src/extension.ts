@@ -38,14 +38,24 @@ export function activate(context: vscode.ExtensionContext) {
     return path;
   }
 
+  async function getJsonFile<T>(path: string) {
+    const fileBuffer = await readFile(path);
+    const data = JSON.parse(fileBuffer.toString()) as T;
+    return data;
+  }
+
   async function getPackageJson() {
-    const fileBuffer = await readFile(`${cwd}/package.json`);
-    const packageJson = JSON.parse(fileBuffer.toString()) as PackageJson;
+    const packageJson = await getJsonFile<PackageJson>(`${cwd}/package.json`);
     return packageJson;
   }
 
+  async function getConfigJson() {
+    const config = await getJsonFile<Scripts>(`${cwd}/script-buttons.json`);
+    return config;
+  }
+
   function createErrorMessage() {
-    createStatusBarItem(`$(circle-slash) Script Buttons`, `No package.json found!`, undefined);
+    createStatusBarItem(`$(circle-slash) Script Buttons`, `No scripts found!`, undefined);
   }
 
   function createRefreshButton() {
@@ -56,15 +66,16 @@ export function activate(context: vscode.ExtensionContext) {
     );
   }
 
-  function createScriptButtonsAndCommands(scripts: Scripts) {
+  function createScriptButtonsAndCommands(scripts: Scripts, isNpm = false) {
     for (const name in scripts) {
-      const command = `script-buttons.${name.replace(' ', '')}`;
+      const vscCommand = `script-buttons.${isNpm && 'npm-'}${name.replace(' ', '')}`;
+      const command = isNpm ? `npm run ${name}` : scripts[name];
 
-      const commandDisposable = vscode.commands.registerCommand(command, async () => {
-        let terminal = terminals[command];
+      const commandDisposable = vscode.commands.registerCommand(vscCommand, async () => {
+        let terminal = terminals[vscCommand];
 
         if (terminal) {
-          delete terminals[command];
+          delete terminals[vscCommand];
           terminal.dispose();
         }
 
@@ -73,14 +84,16 @@ export function activate(context: vscode.ExtensionContext) {
           cwd,
         });
 
-        terminals[command] = terminal;
+        terminals[vscCommand] = terminal;
 
         terminal.show(true);
-        terminal.sendText(`npm run ${name}`);
+        terminal.sendText(command);
       });
 
       addDisposable(commandDisposable);
-      createStatusBarItem(name, name, command);
+
+      const color = isNpm ? 'white' : undefined;
+      createStatusBarItem(name, command, vscCommand, color);
     }
   }
 
@@ -89,15 +102,29 @@ export function activate(context: vscode.ExtensionContext) {
     registerCommands();
     createRefreshButton();
 
+    let scripts: Scripts = {};
+
     try {
       const packageJson = await getPackageJson();
       console.log('Loaded package.json!');
 
-      const { scripts } = packageJson;
-
-      createScriptButtonsAndCommands(scripts);
+      createScriptButtonsAndCommands(packageJson.scripts, true);
+      scripts = { ...scripts, ...packageJson.scripts };
     } catch {
       console.log('No package.json found!');
+    }
+
+    try {
+      const configScripts = await getConfigJson();
+      console.log('Loaded script-buttons.json!');
+
+      createScriptButtonsAndCommands(configScripts);
+      scripts = { ...scripts, ...configScripts };
+    } catch {
+      console.log('No script-buttons.json found!');
+    }
+
+    if (!Object.keys(scripts).length) {
       createErrorMessage();
     }
   }

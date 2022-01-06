@@ -7,12 +7,24 @@
 		"url": "https://github.com/jwaterfall/script-buttons.git"
 	},
 	"description": "",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"engines": {
 		"vscode": "^1.63.0"
 	},
 	"categories": [
 		"Other"
+	],
+	"keywords": [
+		"npm",
+		"node",
+		"script",
+		"scripts",
+		"button",
+		"buttons",
+		"shortcuts",
+		"actions",
+		"package.json",
+		"script-buttons.json"
 	],
 	"icon": "images/icon.png",
 	"activationEvents": [
