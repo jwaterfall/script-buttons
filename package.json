@@ -1,23 +1,29 @@
 {
   "name": "script-buttons",
-	"displayName": "script-buttons",
+	"displayName": "Script Buttons",
+	"publisher": "JackWaterfall",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/jwaterfall/script-buttons.git"
+	},
 	"description": "",
-	"version": "0.0.1",
+	"version": "1.0.0",
 	"engines": {
 		"vscode": "^1.63.0"
 	},
 	"categories": [
 		"Other"
 	],
+	"icon": "images/icon.png",
 	"activationEvents": [
-        "*"
+        "onStartupFinished"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
 		"commands": [
 			{
 				"command": "script-buttons.refreshScripts",
-				"title": "Refresh package.json script buttons"
+				"title": "Refetch the scripts from your package.json file"
 			}
 		]
 	},

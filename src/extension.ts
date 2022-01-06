@@ -1,6 +1,9 @@
+import { promises as fsPromises } from 'fs';
 import vscode from 'vscode';
 import { workspace } from 'vscode';
 import { Disposable, PackageJson, Scripts } from './types';
+
+const { readFile } = fsPromises;
 
 export function activate(context: vscode.ExtensionContext) {
   const disposables: Disposable[] = [];
@@ -16,7 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
     disposables.forEach((disposable) => disposable.dispose());
   }
 
-  function createStatusBarItem(text: string, tooltip?: string, command?: string, color = 'white') {
+  function createStatusBarItem(text: string, tooltip?: string, command?: string, color?: string) {
     const item = vscode.window.createStatusBarItem(1, 0);
     item.text = text;
     item.command = command;
@@ -36,25 +39,20 @@ export function activate(context: vscode.ExtensionContext) {
   }
 
   async function getPackageJson() {
-    const packageJson = (await import(`${cwd}/package.json`)) as PackageJson;
+    const fileBuffer = await readFile(`${cwd}/package.json`);
+    const packageJson = JSON.parse(fileBuffer.toString()) as PackageJson;
     return packageJson;
   }
 
   function createErrorMessage() {
-    createStatusBarItem(
-      `$(circle-slash) Script Buttons`,
-      `No package.json found!`,
-      undefined,
-      'white',
-    );
+    createStatusBarItem(`$(circle-slash) Script Buttons`, `No package.json found!`, undefined);
   }
 
   function createRefreshButton() {
     createStatusBarItem(
       '$(refresh)',
-      'Refetches the scripts from your package.json file',
+      'Script Buttons: Refetches the scripts from your package.json file',
       'script-buttons.refreshScripts',
-      'white',
     );
   }
 
@@ -82,13 +80,14 @@ export function activate(context: vscode.ExtensionContext) {
       });
 
       addDisposable(commandDisposable);
-      createStatusBarItem(name, name, command, 'white');
+      createStatusBarItem(name, name, command);
     }
   }
 
   async function init() {
     cleanup();
     registerCommands();
+    createRefreshButton();
 
     try {
       const packageJson = await getPackageJson();
@@ -96,7 +95,6 @@ export function activate(context: vscode.ExtensionContext) {
 
       const { scripts } = packageJson;
 
-      createRefreshButton();
       createScriptButtonsAndCommands(scripts);
     } catch {
       console.log('No package.json found!');
