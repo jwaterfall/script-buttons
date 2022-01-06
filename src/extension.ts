@@ -68,33 +68,38 @@ export function activate(context: vscode.ExtensionContext) {
 
   function createScriptButtonsAndCommands(scripts: Scripts, isNpm = false) {
     for (const name in scripts) {
-      const vscCommand = `script-buttons.${isNpm && 'npm-'}${name.replace(' ', '')}`;
       const command = isNpm ? `npm run ${name}` : scripts[name];
-
-      const commandDisposable = vscode.commands.registerCommand(vscCommand, async () => {
-        let terminal = terminals[vscCommand];
-
-        if (terminal) {
-          delete terminals[vscCommand];
-          terminal.dispose();
-        }
-
-        terminal = vscode.window.createTerminal({
-          name,
-          cwd,
-        });
-
-        terminals[vscCommand] = terminal;
-
-        terminal.show(true);
-        terminal.sendText(command);
-      });
-
-      addDisposable(commandDisposable);
+      const vscCommand = createVscCommand(command, name, isNpm);
 
       const color = isNpm ? 'white' : undefined;
       createStatusBarItem(name, command, vscCommand, color);
     }
+  }
+
+  function createVscCommand(command: string, name: string, isNpm = false) {
+    const vscCommand = `script-buttons.${isNpm && 'npm-'}${name.replace(' ', '')}`;
+
+    const commandDisposable = vscode.commands.registerCommand(vscCommand, async () => {
+      let terminal = terminals[vscCommand];
+
+      if (terminal) {
+        delete terminals[vscCommand];
+        terminal.dispose();
+      }
+
+      terminal = vscode.window.createTerminal({
+        name,
+        cwd,
+      });
+
+      terminals[vscCommand] = terminal;
+
+      terminal.show(true);
+      terminal.sendText(command);
+    });
+
+    addDisposable(commandDisposable);
+    return vscCommand;
   }
 
   async function init() {
@@ -107,6 +112,10 @@ export function activate(context: vscode.ExtensionContext) {
     try {
       const packageJson = await getPackageJson();
       console.log('Loaded package.json!');
+
+      // npm install command
+      const vscCommand = createVscCommand('npm install', 'install', true);
+      createStatusBarItem('NPM Install', 'npm install', vscCommand, 'white');
 
       createScriptButtonsAndCommands(packageJson.scripts, true);
       scripts = { ...scripts, ...packageJson.scripts };
