@@ -1,4 +1,4 @@
-![icon](images/icon.png)
+![banner](images/banner.png)
 
 # Script Buttons for VSCode
 
